@@ -75,6 +75,104 @@ def remove_paper_background_adaptive(input_path, output_path, block_size=11, c_v
     print(f"  Parameters: block_size={block_size}, c_value={c_value}, fill_strokes={fill_strokes}")
 
 
+def remove_borders(input_path, output_path, min_line_length_ratio=0.3, line_thickness=3, use_hough=False):
+    """
+    Remove border lines from a scanned document image.
+    Detects and removes long horizontal and vertical lines (borders) around the text.
+    
+    Args:
+        input_path: Path to input image (should have white background, black text)
+        output_path: Path to save output image
+        min_line_length_ratio: Minimum line length as ratio of image dimension (default 0.3 = 30%)
+                              Lines shorter than this won't be removed
+        line_thickness: Thickness of lines to detect/remove (default 3 pixels)
+        use_hough: If True, use Hough Line Transform for more precise detection (slower but more accurate)
+    """
+    # Read the image
+    img = cv2.imread(input_path)
+    
+    if img is None:
+        raise ValueError(f"Could not read image from {input_path}")
+    
+    # Convert to grayscale if needed
+    if len(img.shape) == 3:
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = img.copy()
+    
+    h, w = gray.shape
+    min_horizontal_length = int(w * min_line_length_ratio)
+    min_vertical_length = int(h * min_line_length_ratio)
+    
+    # Create mask for lines to remove (start with all zeros/black)
+    line_mask = np.zeros_like(gray)
+    
+    if use_hough:
+        # Method 1: Hough Line Transform (more precise but slower)
+        # Detect horizontal lines
+        horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (min_horizontal_length, line_thickness))
+        horizontal_lines = cv2.morphologyEx(gray, cv2.MORPH_OPEN, horizontal_kernel)
+        
+        # Detect vertical lines
+        vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (line_thickness, min_vertical_length))
+        vertical_lines = cv2.morphologyEx(gray, cv2.MORPH_OPEN, vertical_kernel)
+        
+        # Combine horizontal and vertical lines
+        line_mask = cv2.bitwise_or(horizontal_lines, vertical_lines)
+        
+        # Use HoughLinesP for more precise line detection
+        edges = cv2.Canny(gray, 50, 150, apertureSize=3)
+        lines = cv2.HoughLinesP(edges, 1, np.pi/180, threshold=100, 
+                                minLineLength=min(min_horizontal_length, min_vertical_length),
+                                maxLineGap=10)
+        
+        if lines is not None:
+            for line in lines:
+                x1, y1, x2, y2 = line[0]
+                # Check if line is mostly horizontal or vertical
+                dx = abs(x2 - x1)
+                dy = abs(y2 - y1)
+                if dx > dy and dx >= min_horizontal_length:  # Horizontal line
+                    cv2.line(line_mask, (x1, y1), (x2, y2), 255, line_thickness)
+                elif dy > dx and dy >= min_vertical_length:  # Vertical line
+                    cv2.line(line_mask, (x1, y1), (x2, y2), 255, line_thickness)
+    else:
+        # Method 2: Morphological operations (faster)
+        # Detect horizontal lines using morphological opening with horizontal kernel
+        horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (min_horizontal_length, line_thickness))
+        horizontal_lines = cv2.morphologyEx(gray, cv2.MORPH_OPEN, horizontal_kernel)
+        
+        # Detect vertical lines using morphological opening with vertical kernel
+        vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (line_thickness, min_vertical_length))
+        vertical_lines = cv2.morphologyEx(gray, cv2.MORPH_OPEN, vertical_kernel)
+        
+        # Combine horizontal and vertical lines
+        line_mask = cv2.bitwise_or(horizontal_lines, vertical_lines)
+        
+        # Dilate the mask slightly to ensure we remove the entire line
+        dilate_kernel = np.ones((line_thickness + 2, line_thickness + 2), np.uint8)
+        line_mask = cv2.dilate(line_mask, dilate_kernel, iterations=1)
+    
+    # Invert the mask: we want to keep everything except the lines
+    # Then use inpainting to fill in the removed lines with background color
+    # For binary images, we can simply set detected line pixels to white (255)
+    result = gray.copy()
+    result[line_mask > 0] = 255  # Replace detected lines with white background
+    
+    # Optional: Use inpainting for smoother results (works better for grayscale images)
+    # Uncomment if you want smoother line removal:
+    # result = cv2.inpaint(gray, line_mask, inpaintRadius=3, flags=cv2.INPAINT_TELEA)
+    
+    # Convert back to RGB if original was RGB
+    if len(img.shape) == 3:
+        result = cv2.cvtColor(result, cv2.COLOR_GRAY2RGB)
+    
+    # Save the result
+    cv2.imwrite(output_path, result)
+    print(f"Borders removed! Output saved to: {output_path}")
+    print(f"  Parameters: min_line_length_ratio={min_line_length_ratio}, line_thickness={line_thickness}, use_hough={use_hough}")
+
+
 if __name__ == "__main__":
     # Default values
     input_path = '20251128_200048.jpg'
@@ -97,7 +195,21 @@ if __name__ == "__main__":
         fill_strokes = sys.argv[5].lower() in ('true', '1', 'yes', 'y')
     
     try:
+        # Step 1: Remove paper background
         remove_paper_background_adaptive(input_path, output_path, block_size, c_value, fill_strokes)
+        
+        # Step 2: Remove borders from the output
+        import os
+        import shutil
+        base_name = os.path.splitext(output_path)[0]
+        ext = os.path.splitext(output_path)[1]
+        temp_output = f"{base_name}_temp{ext}"
+        
+        remove_borders(output_path, temp_output, min_line_length_ratio=0.3, line_thickness=3, use_hough=False)
+        
+        # Replace original output with border-removed version
+        shutil.move(temp_output, output_path)
+        print(f"\nFinal output (with borders removed) saved to: {output_path}")
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
