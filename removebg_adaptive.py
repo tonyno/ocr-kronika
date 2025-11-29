@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import sys
+import os
 
 def remove_paper_background_adaptive(input_path, output_path, block_size=11, c_value=2, fill_strokes=True):
     """
@@ -77,27 +78,21 @@ def remove_paper_background_adaptive(input_path, output_path, block_size=11, c_v
 
 if __name__ == "__main__":
     # Default values
-    input_path = '20251128_200048.jpg'
-    output_path = 'output.png'
+    input_path = './input'
+    output_path = './output'
     block_size = 11
     c_value = 2
     fill_strokes = True
     
-    # Allow command line arguments
-    # Usage: python removebg_adaptive.py [input] [output] [block_size] [c_value] [fill_strokes]
-    if len(sys.argv) > 1:
-        input_path = sys.argv[1]
-    if len(sys.argv) > 2:
-        output_path = sys.argv[2]
-    if len(sys.argv) > 3:
-        block_size = int(sys.argv[3])
-    if len(sys.argv) > 4:
-        c_value = int(sys.argv[4])
-    if len(sys.argv) > 5:
-        fill_strokes = sys.argv[5].lower() in ('true', '1', 'yes', 'y')
-    
     try:
-        remove_paper_background_adaptive(input_path, output_path, block_size, c_value, fill_strokes)
+        for file in os.listdir(input_path):
+            if file.endswith('.jpg') or file.endswith('.png'):
+           
+                file_with_path = os.path.join(input_path, file)
+                output_file_with_path = os.path.join(output_path, file)
+                print(f"Processing {file} from {file_with_path} to {output_file_with_path}")
+                remove_paper_background_adaptive(file_with_path, output_file_with_path, block_size, c_value, fill_strokes)
+        # remove_paper_background_adaptive(input_path, output_path, block_size, c_value, fill_strokes)
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
