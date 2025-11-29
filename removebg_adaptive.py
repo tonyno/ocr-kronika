@@ -80,8 +80,8 @@ if __name__ == "__main__":
     # Default values
     input_path = './input'
     output_path = './output'
-    block_size = 11
-    c_value = 2
+    block_size = 80
+    c_value = 12
     fill_strokes = True
     
     try:
