@@ -56,6 +56,7 @@ def load_and_fit_image(path: Path):
     x = (PAGE_WIDTH_PX - img.width) // 2
     y = (PAGE_HEIGHT_PX - img.height) // 2
     page.paste(img, (x, y))
+    print("Processed image: ", path.name)
 
     return page
 
