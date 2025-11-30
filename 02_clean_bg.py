@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 from pathlib import Path
-import argparse
 
 
 
@@ -59,8 +58,10 @@ def clean_page(input_path: Path, output_path: Path):
     antialiased = cv2.GaussianBlur(cleaned, (3, 3), 0)
 
     # Save as PNG (lossless, good for printing)
+    # Compression level 3: balances file size (~5 MB) with encoding speed
+    # PNG compression is lossless, so quality remains perfect at any level
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    cv2.imwrite(str(output_path), antialiased)
+    cv2.imwrite(str(output_path), antialiased, [cv2.IMWRITE_PNG_COMPRESSION, 1])
     print(f"Saved cleaned page to {output_path}")
 
 

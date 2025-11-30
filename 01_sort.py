@@ -15,7 +15,7 @@ files = sorted([f for f in source_dir.iterdir() if f.is_file()])
 # Copy files with new names
 for index, file_path in enumerate(files, start=1):
     # Generate new filename with leading zeros (page001.jpg, page002.jpg, etc.)
-    new_filename = f"page{index:03d}.jpg"
+    new_filename = f"page{index:03d}a.jpg"
     dest_path = dest_dir / new_filename
     
     # Copy the file
