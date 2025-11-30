@@ -1,6 +1,3 @@
 internal_notes.txt
-input/*
-output/*
-output_old/*
-output2/*
-input2/*
+input*/*
+output*/*

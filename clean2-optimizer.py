@@ -7,7 +7,7 @@ import argparse
 
 
 
-def clean_page(input_path: Path, output_path: Path):
+def clean_page(input_path: Path, output_path: Path, b: int, c: int):
     # 1) Load image
     img = cv2.imread(str(input_path))
     if img is None:
@@ -28,8 +28,8 @@ def clean_page(input_path: Path, output_path: Path):
         maxValue=255,
         adaptiveMethod=cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
         thresholdType=cv2.THRESH_BINARY,
-        blockSize=83,   # size of neighbourhood (try 21, 31, 41)
-        C=4             # local threshold adjustment (try 5–20)
+        blockSize=b,   # size of neighbourhood (try 21, 31, 41)
+        C=c             # local threshold adjustment (try 5–20)
     )
 
     # Now bw is white background (255) and dark text (0).
@@ -78,28 +78,29 @@ def main():
     )
     args = parser.parse_args()
 
-    in_path = Path(args.input)
-    out_path = Path(args.output)
+    for b in range(83, 84, 6):
+        for c in range(2, 5, 1):
 
-    if in_path.is_file():
-        # Single file
-        if out_path.is_dir():
-            out_file = out_path / (in_path.stem + "_clean.png")
-        else:
-            out_file = out_path
-        clean_page(in_path, out_file)
+            in_path = Path(args.input)
+            out_path = Path(args.output)
 
-    elif in_path.is_dir():
-        # Folder → process all images
-        out_path.mkdir(parents=True, exist_ok=True)
-        exts = {".jpg", ".jpeg", ".png", ".tif", ".tiff"}
-        for img_file in sorted(in_path.iterdir()):
-            if img_file.suffix.lower() in exts:
-                out_file = out_path / (img_file.stem + "_clean.png")
-                clean_page(img_file, out_file)
-    else:
-        print("Input path does not exist.")
+            if in_path.is_dir():
+                # Folder → process all images
+                out_path.mkdir(parents=True, exist_ok=True)
+                exts = {".jpg", ".jpeg", ".png", ".tif", ".tiff"}
+                for img_file in sorted(in_path.iterdir()):
+                    if img_file.suffix.lower() in exts:
+                        out_file = out_path / (img_file.stem + "_b" + str(b) + "c" + str(c) + ".png")
+                        clean_page(img_file, out_file, b, c)
+                       #break
+            else:
+                print("Input path does not exist.")
 
 
 if __name__ == "__main__":
     main()
+
+
+
+# best results:
+# b=83, c=4
