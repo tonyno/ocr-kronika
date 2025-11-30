@@ -61,7 +61,7 @@ def load_and_fit_image(path: Path):
 
 
 def main():
-    input_dir = Path("output_cleaned")
+    input_dir = Path("output_cleaned_fixed")
     output_pdf = Path("output.pdf")
 
     exts = {".jpg", ".jpeg", ".png", ".tif", ".tiff"}
