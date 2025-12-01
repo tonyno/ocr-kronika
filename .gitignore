@@ -1,4 +1,5 @@
 internal_notes.txt
 input*/*
 output*/*
-output.pdf
+output*.pdf
+debug_content_detection/*

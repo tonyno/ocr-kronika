@@ -70,6 +70,8 @@ def main():
         [p for p in input_dir.iterdir() if p.suffix.lower() in exts]
     )
 
+    #image_paths = image_paths[:10]
+
     if not image_paths:
         raise SystemExit(f"No images found in: {input_dir}")
 
