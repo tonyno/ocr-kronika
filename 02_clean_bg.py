@@ -28,7 +28,7 @@ def clean_page(input_path: Path, output_path: Path):
         adaptiveMethod=cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
         thresholdType=cv2.THRESH_BINARY,
         blockSize=83,   # size of neighbourhood (try 21, 31, 41)
-        C=4             # local threshold adjustment (try 5–20)
+        C=9             # local threshold adjustment (try 5–20)
     )
 
     # Now bw is white background (255) and dark text (0).
@@ -75,6 +75,8 @@ def main():
         exts = {".jpg", ".jpeg", ".png", ".tif", ".tiff"}
         for img_file in sorted(in_path.iterdir()):
             if img_file.suffix.lower() in exts:
+                if not any(page_num in img_file.stem for page_num in ['125', '126', '127', '140', '143', '295', '322', '323', '324']):
+                    continue
                 out_file = out_path / (img_file.stem + "_clean.png")
                 clean_page(img_file, out_file)
     else:

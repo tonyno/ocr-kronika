@@ -9,12 +9,12 @@ import argparse
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageFilter
+from PIL import Image, ImageFilter, ImageDraw, ImageFont
 
 A4_WIDTH_MM = 210
 A4_HEIGHT_MM = 297
 DPI = 300  # print quality
-IMAGE_SCALE = 1.05  # increase image size by 5%
+IMAGE_SCALE = 1.02  # increase image size by 5%
 
 
 def mm_to_pixels(mm, dpi=DPI):
@@ -115,7 +115,7 @@ def find_content_center(img: Image.Image, debug_name: str = None):
     return content_center_x, content_center_y
 
 
-def load_and_fit_image(path: Path):
+def load_and_fit_image(path: Path, page_number: int):
     img = Image.open(path).convert("RGB")
 
     # Find content center in original image (before resizing)
@@ -154,17 +154,57 @@ def load_and_fit_image(path: Path):
     # Create white A4 background
     page = Image.new("RGB", (PAGE_WIDTH_PX, PAGE_HEIGHT_PX), "white")
 
-    # Position image so content center aligns with page center
+    # Calculate horizontal offset: odd pages move 1cm right, even pages move 1cm left
+    # 1cm = 10mm
+    offset_mm = 7 if page_number % 2 == 1 else -7  # Odd: +10mm (right), Even: -10mm (left)
+    offset_px = mm_to_pixels(offset_mm)
+
+    # Position image so content center aligns with page center (with offset)
     # Page center coordinates
     page_center_x = PAGE_WIDTH_PX // 2
     page_center_y = PAGE_HEIGHT_PX // 2
 
-    # Calculate position: content center should be at page center
-    x = int(page_center_x - content_center_x_resized)
+    # Calculate position: content center should be at page center + offset
+    x = int(page_center_x - content_center_x_resized + offset_px)
     y = int(page_center_y - content_center_y_resized)
 
     page.paste(img, (x, y))
-    print("Processed image: ", path.name)
+
+    # Add page number at the bottom (4mm from bottom)
+    draw = ImageDraw.Draw(page)
+    
+    # Try to use a nice font, fallback to default if not available
+    try:
+        # Try to use a system font (adjust path for your system if needed)
+        font_size = mm_to_pixels(4)  # 4mm font size
+        try:
+            font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", font_size)
+        except:
+            try:
+                font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_size)
+            except:
+                font = ImageFont.load_default()
+    except:
+        font = ImageFont.load_default()
+
+    # Page number text
+    if page_number >= 5:
+        page_text = str(page_number-4)
+        
+        # Get text bounding box to center it
+        bbox = draw.textbbox((0, 0), page_text, font=font)
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+        
+        # Position: 4mm from bottom, centered horizontally with same offset
+        bottom_margin_px = mm_to_pixels(8)
+        text_x = int(page_center_x - text_width // 2 + offset_px)
+        text_y = PAGE_HEIGHT_PX - bottom_margin_px - text_height
+        
+        # Draw page number (70% black = 30% brightness)
+        draw.text((text_x, text_y), page_text, fill=(77, 77, 77), font=font)
+    
+    print("Processed image: ", path.name, f"(page {page_number})")
 
     return page
 
@@ -178,12 +218,12 @@ def main():
         [p for p in input_dir.iterdir() if p.suffix.lower() in exts]
     )
 
-    #image_paths = image_paths[:7]
+    #image_paths = image_paths[:12]
 
     if not image_paths:
         raise SystemExit(f"No images found in: {input_dir}")
 
-    pages = [load_and_fit_image(p) for p in image_paths]
+    pages = [load_and_fit_image(p, page_number=i+1) for i, p in enumerate(image_paths)]
 
     # Save as multi-page PDF with maximum quality
     first, rest = pages[0], pages[1:]
