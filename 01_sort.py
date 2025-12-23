@@ -24,3 +24,4 @@ for index, file_path in enumerate(files, start=1):
 
 print(f"\nTotal files copied: {len(files)}")
 
+
