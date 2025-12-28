@@ -4,3 +4,6 @@ ministrovi/input*/*
 ministrovi/output*/*
 ministrovi/output*.pdf
 ministrovi/debug_content_detection/*
+
+zlamalovi/input*/*
+zlamalovi/output*/*
