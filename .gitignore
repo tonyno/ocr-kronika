@@ -1,5 +1,6 @@
-internal_notes.txt
-input*/*
-output*/*
-output*.pdf
-debug_content_detection/*
+ministrovi/internal_notes.txt
+ministrovi/input_original/*
+ministrovi/input*/*
+ministrovi/output*/*
+ministrovi/output*.pdf
+ministrovi/debug_content_detection/*
